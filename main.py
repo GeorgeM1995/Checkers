@@ -7,6 +7,8 @@ class CellValue(enum.Enum):
     BLACK = 1
     RED = 2
     INVALID = 3
+    BLACK_KING = 4
+    RED_KING = 5
 
 class LogicalBoard:
     def __init__(self):
@@ -46,11 +48,11 @@ class LogicalBoard:
             front_left = (x_0 - 1, y_0 + 1)
             y_movement = 2
             if x_1 > x_0:
-                if self.value_at(front_right) == CellValue.RED:
+                if self.value_at(front_right) == CellValue.RED or self.value_at(front_right) == CellValue.RED_KING :
                     self.take_at = front_right
                     return True
             if x_1 < x_0:
-                if self.value_at(front_left) == CellValue.RED:
+                if self.value_at(front_left) == CellValue.RED or self.value_at(front_left) == CellValue.RED_KING:
                     self.take_at = front_left
                     return True
         else:
@@ -58,11 +60,11 @@ class LogicalBoard:
             front_left = (x_0 - 1, y_0 - 1)
             y_movement = -2
             if x_1 > x_0:
-                if self.value_at(front_right) == CellValue.BLACK:
+                if self.value_at(front_right) == CellValue.BLACK or self.value_at(front_right) == CellValue.BLACK_KING :
                     self.take_at = front_right
                     return True
             if x_1 < x_0:
-                if self.value_at(front_left) == CellValue.BLACK:
+                if self.value_at(front_left) == CellValue.BLACK or self.value_at(front_left) == CellValue.BLACK_KING:
                     self.take_at = front_left
                     return True
             return False
@@ -77,7 +79,7 @@ class LogicalBoard:
         if start_pos == end_pos:
             print('false1')
             return False
-        if self.value_at(end_pos) == self.next_player():
+        if self.value_at(end_pos) == self.next_player() or self.value_at(end_pos) == self.next_player() + 3:
             print('false2')
             return False
         if self.value_at(end_pos) == self.player_turn:
@@ -199,6 +201,7 @@ def main():
         graphical_board.draw(screen, logical_board)
         pygame.display.update()
         clock.tick(60)
+
 
 if __name__ == '__main__':
     main()
