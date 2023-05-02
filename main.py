@@ -10,11 +10,15 @@ class CellValue(enum.Enum):
     BLACK_KING = 4
     RED_KING = 5
 
+class Player(enum.Enum):
+    BLACK = 0
+    RED = 1
+
 class LogicalBoard:
     def __init__(self):
         self.board = []
         self.take_at = None
-        self.player_turn = CellValue.BLACK
+        self.player_turn = Player.BLACK
         for y in range (8):
             row = []
             for x in range(8):
@@ -35,39 +39,58 @@ class LogicalBoard:
             x, y = pos
             return self.board[y][x]
 
+    def player_owns_square(self, player, pos):
+        if self.value_at(pos) == CellValue.BLACK or self.value_at(pos) == CellValue.BLACK_KING:
+            return True
+        if self.value_at(pos) == CellValue.RED or self.value_at(pos) == CellValue.RED_KING:
+            return True
+        return False
+
+
 
     def set_value_at(self, pos, value):
         if pos is not None:
             x, y = pos
             self.board[y][x] = value
 
+    def king_check(self,end_pos):
+        x_1, y_1 = end_pos
+        if self.player_turn == Player.BLACK:
+            if y_1 >= 7:
+                self.set_value_at(end_pos, CellValue.BLACK_KING)
+        if self.player_turn == Player.RED:
+            if y_1 <= 0:
+                self.set_value_at(end_pos, CellValue.RED_KING)
 
-    def check_for_take(self, x_0, y_0, x_1, y_1):
-        if self.player_turn == CellValue.BLACK:
-            front_right = (x_0 + 1, y_0 + 1)
-            front_left = (x_0 - 1, y_0 + 1)
-            y_movement = 2
-            if x_1 > x_0:
-                if self.value_at(front_right) == CellValue.RED or self.value_at(front_right) == CellValue.RED_KING :
+
+
+
+    def check_for_take(self, start_pos, end_pos):
+        x_0, y_0 = start_pos
+        x_1, y_1 = end_pos
+        dy = y_1 - y_0
+        front_right = (x_0 + 1, y_0 + 1)
+        front_left = (x_0 - 1, y_0 + 1)
+        back_right = (x_0 + 1, y_0 - 1)
+        back_left = (x_0 - 1, y_0 - 1)
+        if dy == 2 or dy == -2:
+            if x_1 > x_0 and y_1 > y_0:
+                if self.player_owns_square(self.next_player, front_right):
                     self.take_at = front_right
-                    return True
-            if x_1 < x_0:
-                if self.value_at(front_left) == CellValue.RED or self.value_at(front_left) == CellValue.RED_KING:
+                    return self.take_at
+            if x_1 < x_0 and y_1 > y_0:
+                if self.player_owns_square(self.next_player, front_left):
                     self.take_at = front_left
-                    return True
-        else:
-            front_right = (x_0 + 1, y_0 - 1)
-            front_left = (x_0 - 1, y_0 - 1)
-            y_movement = -2
-            if x_1 > x_0:
-                if self.value_at(front_right) == CellValue.BLACK or self.value_at(front_right) == CellValue.BLACK_KING :
-                    self.take_at = front_right
-                    return True
-            if x_1 < x_0:
-                if self.value_at(front_left) == CellValue.BLACK or self.value_at(front_left) == CellValue.BLACK_KING:
-                    self.take_at = front_left
-                    return True
-            return False
+                    return self.take_at
+            if x_1 > x_0 and y_1 < y_0:
+                if self.player_owns_square(self.next_player, back_right):
+                    self.take_at = back_right
+                    return self.take_at
+            if x_1 < x_0 and y_1 < y_0:
+                if self.player_owns_square(self.next_player, back_left):
+                    self.take_at = back_left
+                    return self.take_at
+        return None
 
 
     def is_legal(self, start_pos, end_pos):
@@ -77,36 +100,31 @@ class LogicalBoard:
         dy = y_1 - y_0
         self.take_at = None
         if start_pos == end_pos:
-            print('false1')
             return False
-        if self.value_at(end_pos) == self.next_player() or self.value_at(end_pos) == self.next_player() + 3:
-            print('false2')
+        if self.player_owns_square(self.player_turn, end_pos) or self.player_owns_square(self.next_player(), end_pos):
             return False
-        if self.value_at(end_pos) == self.player_turn:
-            print('false3')
-            return False
-        if dy * self.player_direction(self.player_turn) < 0:
-            return False
+        if self.value_at(start_pos) == CellValue.BLACK or self.value_at(start_pos) == CellValue.RED:
+            if dy * self.player_direction(self.player_turn) < 0:
+                return False
         if dy > 2 or dy < -2:
             return False
-        if self.check_for_take(x_0, y_0, x_1, y_1):
-            print('take check true')
+        if self.check_for_take(start_pos, end_pos):
             return True
         if dx > 1 or dx < -1:
             return False
         if dy > 1 or dy < -1:
             return False
-        print('end loop true')
         return True
 
 
 
     def perform_move(self, start_pos, end_pos):
         if self.is_legal(start_pos, end_pos):
+            self.set_value_at(end_pos, self.value_at(start_pos))
             self.set_value_at(start_pos, CellValue.EMPTY)
-            self.set_value_at(end_pos, self.player_turn)
+            self.king_check(end_pos)
 
-            if self.take_at:
+            if self.take_at != None:
                 self.set_value_at(self.take_at, CellValue.EMPTY)
             self.take_at = None
             self.player_turn = self.next_player()
@@ -114,13 +132,13 @@ class LogicalBoard:
         return False
 
     def next_player(self):
-        if self.player_turn == CellValue.BLACK:
-            return CellValue.RED
+        if self.player_turn == Player.BLACK:
+            return Player.RED
         else:
-            return CellValue.BLACK
+            return Player.BLACK
 
     def player_direction(self, player):
-        if player == CellValue.BLACK:
+        if player == Player.BLACK:
             return 1
         else:
             return -1
@@ -136,7 +154,9 @@ class GraphicalBoard:
         self.rect_background = self.img_background.get_rect(center=(resolution / 2, resolution / 2))
         self.squares = {}
         self.img_black_normal = pygame.image.load('graphics/black_normal.png')
+        self.img_black_king = pygame.image.load('graphics/black_king.png')
         self.img_red_normal = pygame.image.load('graphics/red_normal.png')
+        self.img_red_king = pygame.image.load('graphics/red_king.png')
 
         # shift_x, shift_y to center the rect on the square
         img_width, img_height = self.img_red_normal.get_size()
@@ -166,6 +186,10 @@ class GraphicalBoard:
                 img = self.img_black_normal
             elif square_logic == CellValue.RED:
                 img = self.img_red_normal
+            elif square_logic == CellValue.BLACK_KING:
+                img = self.img_black_king
+            elif square_logic == CellValue.RED_KING:
+                img = self.img_red_king
             if img is not None:
                 screen.blit(img, square_graphic)
 
@@ -189,8 +213,9 @@ def main():
             if event.type == pygame.MOUSEBUTTONUP:
                 mouse_click = pygame.mouse.get_pos()
                 if start_pos is None:
+
                     click_pos = graphical_board.rect_at(mouse_click)
-                    if logical_board.value_at(click_pos) == logical_board.player_turn:
+                    if logical_board.player_owns_square(logical_board.player_turn, click_pos):
                         start_pos = click_pos
                 else:
                     end_pos = graphical_board.rect_at(mouse_click)
@@ -201,7 +226,6 @@ def main():
         graphical_board.draw(screen, logical_board)
         pygame.display.update()
         clock.tick(60)
-
 
 if __name__ == '__main__':
     main()
