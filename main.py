@@ -40,10 +40,12 @@ class LogicalBoard:
             return self.board[y][x]
 
     def player_owns_square(self, player, pos):
-        if self.value_at(pos) == CellValue.BLACK or self.value_at(pos) == CellValue.BLACK_KING:
-            return True
-        if self.value_at(pos) == CellValue.RED or self.value_at(pos) == CellValue.RED_KING:
-            return True
+        if player == Player.BLACK:
+            if self.value_at(pos) == CellValue.BLACK or self.value_at(pos) == CellValue.BLACK_KING:
+                return True
+        else:
+            if self.value_at(pos) == CellValue.RED or self.value_at(pos) == CellValue.RED_KING:
+                return True
         return False
 
 
@@ -124,7 +126,7 @@ class LogicalBoard:
             self.set_value_at(start_pos, CellValue.EMPTY)
             self.king_check(end_pos)
 
-            if self.take_at != None:
+            if self.take_at is not None:
                 self.set_value_at(self.take_at, CellValue.EMPTY)
             self.take_at = None
             self.player_turn = self.next_player()
@@ -221,6 +223,7 @@ def main():
                     end_pos = graphical_board.rect_at(mouse_click)
                     if end_pos is not None:
                         logical_board.perform_move(start_pos, end_pos)
+
                     start_pos = None
 
         graphical_board.draw(screen, logical_board)
