@@ -19,6 +19,8 @@ class LogicalBoard:
         self.board = []
         self.take_at = None
         self.player_turn = Player.BLACK
+        self.take_made = False
+        self.take_position = None
         for y in range (8):
             row = []
             for x in range(8):
@@ -34,11 +36,6 @@ class LogicalBoard:
             self.board.append(row)
         print(self.board)
 
-    def value_at(self, pos):
-        if pos is not None:
-            x, y = pos
-            return self.board[y][x]
-
     def player_owns_square(self, player, pos):
         if player == Player.BLACK:
             if self.value_at(pos) == CellValue.BLACK or self.value_at(pos) == CellValue.BLACK_KING:
@@ -48,12 +45,17 @@ class LogicalBoard:
                 return True
         return False
 
-
+    def value_at(self, pos):
+        if pos is not None:
+            x, y = pos
+            return self.board[y][x]
 
     def set_value_at(self, pos, value):
         if pos is not None:
             x, y = pos
             self.board[y][x] = value
+
+
 
     def king_check(self,end_pos):
         x_1, y_1 = end_pos
@@ -77,22 +79,24 @@ class LogicalBoard:
         back_left = (x_0 - 1, y_0 - 1)
         if dy == 2 or dy == -2:
             if x_1 > x_0 and y_1 > y_0:
-                if self.player_owns_square(self.next_player, front_right):
+                if self.player_owns_square(self.next_player(), front_right):
                     self.take_at = front_right
                     return self.take_at
             if x_1 < x_0 and y_1 > y_0:
-                if self.player_owns_square(self.next_player, front_left):
+                if self.player_owns_square(self.next_player(), front_left):
                     self.take_at = front_left
                     return self.take_at
             if x_1 > x_0 and y_1 < y_0:
-                if self.player_owns_square(self.next_player, back_right):
+                if self.player_owns_square(self.next_player(), back_right):
                     self.take_at = back_right
                     return self.take_at
             if x_1 < x_0 and y_1 < y_0:
-                if self.player_owns_square(self.next_player, back_left):
+                if self.player_owns_square(self.next_player(), back_left):
                     self.take_at = back_left
                     return self.take_at
         return None
+
+
 
 
     def is_legal(self, start_pos, end_pos):
@@ -128,10 +132,36 @@ class LogicalBoard:
 
             if self.take_at is not None:
                 self.set_value_at(self.take_at, CellValue.EMPTY)
+                self.take_made = True
+                self.take_position = end_pos
+
+
             self.take_at = None
-            self.player_turn = self.next_player()
+            if not self.take_made:
+                self.player_turn = self.next_player()
+
             return True
         return False
+
+    def perform_jump(self, start_pos, end_pos):
+        if self.is_legal(start_pos, end_pos):
+            self.set_value_at(end_pos, self.value_at(start_pos))
+            self.set_value_at(start_pos, CellValue.EMPTY)
+            self.king_check(end_pos)
+            self.player_turn = self.next_player()
+
+            if self.take_at is not None:
+                self.set_value_at(self.take_at, CellValue.EMPTY)
+                self.take_made = True
+                self.take_position = end_pos
+
+        else:
+            self.player_turn = self.next_player()
+
+            return True
+        return False
+
+
 
     def next_player(self):
         if self.player_turn == Player.BLACK:
@@ -214,17 +244,26 @@ def main():
 
             if event.type == pygame.MOUSEBUTTONUP:
                 mouse_click = pygame.mouse.get_pos()
-                if start_pos is None:
 
+                if logical_board.take_made:
                     click_pos = graphical_board.rect_at(mouse_click)
-                    if logical_board.player_owns_square(logical_board.player_turn, click_pos):
-                        start_pos = click_pos
-                else:
-                    end_pos = graphical_board.rect_at(mouse_click)
-                    if end_pos is not None:
-                        logical_board.perform_move(start_pos, end_pos)
+                    end_pos = click_pos
+                    logical_board.perform_jump(logical_board.take_position,end_pos)
+                    logical_board.take_made = False
+                    logical_board.take_position = None
 
-                    start_pos = None
+                else:
+                    if start_pos is None:
+
+                        click_pos = graphical_board.rect_at(mouse_click)
+                        if logical_board.player_owns_square(logical_board.player_turn, click_pos):
+                            start_pos = click_pos
+                    else:
+                        end_pos = graphical_board.rect_at(mouse_click)
+                        if end_pos is not None:
+                            logical_board.perform_move(start_pos, end_pos)
+
+                        start_pos = None
 
         graphical_board.draw(screen, logical_board)
         pygame.display.update()
