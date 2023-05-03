@@ -21,6 +21,7 @@ class LogicalBoard:
         self.player_turn = Player.BLACK
         self.take_made = False
         self.take_position = None
+        self.game_active = False
         for y in range (8):
             row = []
             for x in range(8):
@@ -178,7 +179,19 @@ class LogicalBoard:
             return -1
 
     def game_over(self):
-        return False
+        black_pieces = 0
+        red_pieces = 0
+        for list in self.board:
+            for space in list:
+                if space == CellValue.BLACK or space == CellValue.BLACK_KING:
+                    black_pieces += 1
+        for list in self.board:
+            for space in list:
+                if space == CellValue.RED or space == CellValue.RED_KING:
+                    red_pieces += 1
+        if black_pieces == 0 or red_pieces == 0:
+            self.game_active = False
+
 
 
 
@@ -227,47 +240,72 @@ class GraphicalBoard:
             if img is not None:
                 screen.blit(img, square_graphic)
 
+
 def main():
     clock = pygame.time.Clock()
     resolution = 900
     cell_size = 111
     screen = pygame.display.set_mode((resolution, resolution))
+    pygame.init()
 
     logical_board = LogicalBoard()
     graphical_board = GraphicalBoard(resolution, cell_size)
 
     start_pos = None
 
-    while not logical_board.game_over():
+    while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
 
-            if event.type == pygame.MOUSEBUTTONUP:
-                mouse_click = pygame.mouse.get_pos()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                logical_board.game_active = True
 
-                if logical_board.take_made:
-                    click_pos = graphical_board.rect_at(mouse_click)
-                    end_pos = click_pos
-                    logical_board.perform_jump(logical_board.take_position,end_pos)
+            if logical_board.game_active:
 
-                else:
-                    if start_pos is None:
+                pygame.display.set_caption((f'{logical_board.player_turn} pieces turn!'))
 
+                if event.type == pygame.MOUSEBUTTONUP:
+                    mouse_click = pygame.mouse.get_pos()
+
+                    if logical_board.take_made:
                         click_pos = graphical_board.rect_at(mouse_click)
-                        if logical_board.player_owns_square(logical_board.player_turn, click_pos):
-                            start_pos = click_pos
+                        end_pos = click_pos
+                        logical_board.perform_jump(logical_board.take_position,end_pos)
+
                     else:
-                        end_pos = graphical_board.rect_at(mouse_click)
-                        if end_pos is not None:
-                            logical_board.perform_move(start_pos, end_pos)
+                        if start_pos is None:
 
-                        start_pos = None
+                            click_pos = graphical_board.rect_at(mouse_click)
+                            if logical_board.player_owns_square(logical_board.player_turn, click_pos):
+                                start_pos = click_pos
+                        else:
+                            end_pos = graphical_board.rect_at(mouse_click)
+                            if end_pos is not None:
+                                logical_board.perform_move(start_pos, end_pos)
 
-        graphical_board.draw(screen, logical_board)
+                            start_pos = None
+            logical_board.game_over()
+            if not logical_board.game_active:
+                print(logical_board.game_active)
+                print('hi')
+                font = pygame.font.Font(None, 50)
+                screen.fill("Black")
+                game_intro = font.render("Press Space to play Checkers!!", False, "red")
+                game_intro_rect = game_intro.get_rect(center=(resolution / 2, resolution / 2))
+                screen.blit(game_intro, game_intro_rect)
+
+                logical_board = LogicalBoard()
+                graphical_board = GraphicalBoard(resolution, cell_size)
+
+                start_pos = None
+            else:
+                graphical_board.draw(screen, logical_board)
         pygame.display.update()
         clock.tick(60)
+
+
 
 if __name__ == '__main__':
     main()
