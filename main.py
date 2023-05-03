@@ -144,11 +144,11 @@ class LogicalBoard:
         return False
 
     def perform_jump(self, start_pos, end_pos):
-        if self.is_legal(start_pos, end_pos):
+        if self.is_legal(start_pos, end_pos) and self.take_at is not None:
             self.set_value_at(end_pos, self.value_at(start_pos))
             self.set_value_at(start_pos, CellValue.EMPTY)
             self.king_check(end_pos)
-            self.player_turn = self.next_player()
+
 
             if self.take_at is not None:
                 self.set_value_at(self.take_at, CellValue.EMPTY)
@@ -157,6 +157,8 @@ class LogicalBoard:
 
         else:
             self.player_turn = self.next_player()
+            self.take_made = False
+            self.take_position = None
 
             return True
         return False
@@ -249,8 +251,6 @@ def main():
                     click_pos = graphical_board.rect_at(mouse_click)
                     end_pos = click_pos
                     logical_board.perform_jump(logical_board.take_position,end_pos)
-                    logical_board.take_made = False
-                    logical_board.take_position = None
 
                 else:
                     if start_pos is None:
